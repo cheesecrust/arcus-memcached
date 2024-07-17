@@ -7661,6 +7661,7 @@ static void complete_nread(conn *c)
 #define SOP_KEY_TOKEN 2
 #define MOP_KEY_TOKEN 2
 #define BOP_KEY_TOKEN 2
+#define GAT_KEY_TOKEN 2
 
 #define MAX_TOKENS 30
 
@@ -12965,6 +12966,38 @@ static void process_getattr_command(conn *c, token_t *tokens, const size_t ntoke
     }
 }
 
+static void process_gat_command(conn* c, token_t *tokens, const size_t ntokens)
+{
+    assert(c != NULL);
+    assert(c->ewouldblock == false);
+    char str[200];
+    ENGINE_ERROR_CODE ret;
+    item_attr attr_data;
+    ENGINE_ITEM_ATTR attr_id = ATTR_EXPIRETIME;
+    int64_t exptime;
+
+    if (! safe_strtoll(tokens[GAT_KEY_TOKEN - 1].value, &exptime)) {
+        ret = ENGINE_EBADVALUE;
+    } else {
+        attr_data.exptime = exptime;
+        for (int i = GAT_KEY_TOKEN; i < ntokens - 1; i++) {
+            char *key = tokens[i].value;
+            size_t nkey = tokens[i].length;
+
+            if (nkey > KEY_MAX_LENGTH) {
+                out_string(c, "CLIENT_ERROR bad command line format");
+            }
+
+            ret = mc_engine.v1->setattr(mc_engine.v0, c, key, nkey,
+                                    &attr_id, 1, &attr_data, 0);
+            CONN_CHECK_AND_SET_EWOULDBLOCK(ret, c);
+            if (settings.detail_enabled) {
+                stats_prefix_record_setattr(key, nkey);
+            }
+        }
+    }
+}
+
 static void process_setattr_command(conn *c, token_t *tokens, const size_t ntokens)
 {
     assert(c != NULL);
@@ -13264,6 +13297,10 @@ static void process_command_ascii(conn *c, char *command, int cmdlen)
     else if ((ntokens >= 2) && (strcmp(tokens[COMMAND_TOKEN].value, "shutdown") == 0))
     {
         process_shutdown_command(c, tokens, ntokens);
+    }
+    else if ((ntokens >= 3) && (strcmp(tokens[COMMAND_TOKEN].value, "gat") == 0))
+    {
+        process_gat_command(c, tokens, ntokens);
     }
     else /* no matching command */
     {

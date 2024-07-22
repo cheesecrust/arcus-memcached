@@ -7661,7 +7661,6 @@ static void complete_nread(conn *c)
 #define SOP_KEY_TOKEN 2
 #define MOP_KEY_TOKEN 2
 #define BOP_KEY_TOKEN 2
-#define GAT_KEY_TOKEN 2
 
 #define MAX_TOKENS 30
 
@@ -8346,11 +8345,23 @@ static void process_stats_command(conn *c, token_t *tokens, const size_t ntokens
 }
 
 /* ntokens is overwritten here... shrug.. */
-static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens, bool return_cas)
+static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens, bool return_cas, bool should_touch)
 {
     assert(c != NULL);
     token_t *key_token = &tokens[KEY_TOKEN];
     ENGINE_ERROR_CODE ret = ENGINE_SUCCESS;
+    int32_t exptime_int = 0;
+    rel_time_t exptime = 0;
+
+    if (should_touch) {
+        // For get and touch commands, use first token as exptime
+        if (!safe_strtol(tokens[1].value, &exptime_int)) {
+            out_string(c, "CLIENT_ERROR invalid exptime argument");
+            return;
+        }
+        key_token++;
+        exptime = realtime(EXPTIME_TO_POSITIVE_TIME(exptime_int));
+    }
 
     do {
         while (key_token->length != 0) {
@@ -13125,19 +13136,19 @@ static void process_command_ascii(conn *c, char *command, int cmdlen)
 
     if ((ntokens >= 3) && (strcmp(tokens[COMMAND_TOKEN].value, "get") == 0))
     {
-        process_get_command(c, tokens, ntokens, false);
+        process_get_command(c, tokens, ntokens, false, false);
     }
     else if ((ntokens >= 3) && (strcmp(tokens[COMMAND_TOKEN].value, "gets") == 0))
     {
-        process_get_command(c, tokens, ntokens, true);
+        process_get_command(c, tokens, ntokens, true, false);
     }
     else if ((ntokens >= 3) && (strcmp(tokens[COMMAND_TOKEN].value, "gat") == 0))
     {
-        process_get_command(c, tokens, ntokens, false);
+        process_get_command(c, tokens, ntokens, false, true);
     }
     else if ((ntokens >= 3) && (strcmp(tokens[COMMAND_TOKEN].value, "gats") == 0))
     {
-        process_get_command(c, tokens, ntokens, true);
+        process_get_command(c, tokens, ntokens, true, true);
     }
     else if ((ntokens == 4) && (strcmp(tokens[COMMAND_TOKEN].value, "mget") == 0))
     {

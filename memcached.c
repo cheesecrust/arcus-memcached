@@ -8350,17 +8350,15 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
     assert(c != NULL);
     token_t *key_token = &tokens[KEY_TOKEN];
     ENGINE_ERROR_CODE ret = ENGINE_SUCCESS;
-    int32_t exptime_int = 0;
-    rel_time_t exptime = 0;
+    int64_t exptime = 0;
 
     if (should_touch) {
         // For get and touch commands, use first token as exptime
-        if (!safe_strtol(tokens[1].value, &exptime_int)) {
+        if (!safe_strtoll(tokens[1].value, &exptime)) {
             out_string(c, "CLIENT_ERROR invalid exptime argument");
             return;
         }
         key_token++;
-        exptime = realtime(EXPTIME_TO_POSITIVE_TIME(exptime_int));
     }
 
     do {
@@ -8374,6 +8372,20 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
             if (ret != ENGINE_SUCCESS) {
                 break; /* ret == ENGINE_ENOMEM */
             }
+
+            if (should_touch) {
+                ENGINE_ITEM_ATTR attr_id = ATTR_EXPIRETIME;
+                item_attr attr_data;
+
+                attr_data.exptime = realtime(exptime);
+                ret = mc_engine.v1->setattr(mc_engine.v0, c, key_token->value, key_token->length,
+                                            &attr_id, 1, &attr_data, 0);
+                CONN_CHECK_AND_SET_EWOULDBLOCK(ret, c);
+                if (settings.detail_enabled) {
+                    stats_prefix_record_setattr(key_token->value, key_token->length);
+                }
+            }
+
             key_token++;
         }
         if (ret != ENGINE_SUCCESS) break;

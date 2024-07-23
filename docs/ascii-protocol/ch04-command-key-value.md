@@ -137,3 +137,23 @@ gats 명령의 경우 cas value 도 같이 출력됩니다.
 |----------------------|------------------------ |
 | "CLIENT_ERROR"       | 클라이언트에서 잘못된 질의를 했음을 의미. 이어 나오는 문자열을 통해 오류의 원인을 파악 가능. 예) bad command line format
 | "SERVER ERROR"       | 서버 측의 오류로 조회하지 못했음을 의미. 이어 나오는 문자열을 통해 오류의 원인을 파악 가능. 예) out of memory writing get response
+
+## touch (Item의 expiretime 변경)
+
+key에 해당하는 item을 fetch 하지 않고 expiretime을 재설정하는 명령은 아래와 같다. 이 명령은 모든 item 타입에 대해 적용이 가능하다.
+
+```
+touch <key> <exptime> [noreply]\r\n
+```
+
+- \<key\> - 대상 item의 key string
+- \<exptime\> - 재설정할 expiretime 값
+
+이 명령의 response string과 그 의미는 아래와 같다.
+
+| Response String          | 설명                            |
+| ------------------------ | ------------------------------- |
+| "TOUCHED"                | 성공                            |
+| "NOT_FOUND"              | key miss                        |
+| "CLIENT_ERROR bad value" | exptime 값이 유효하지 않은 경우 |
+

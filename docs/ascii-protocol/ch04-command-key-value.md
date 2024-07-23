@@ -110,3 +110,30 @@ decr <key> <delta> [<flags> <exptime> <initial>] [noreply]\r\n
 | "TYPE_MISMATCH"      | 해당 아이템이 key-value 타입이 아님
 | "CLIENT_ERROR"       | 클라이언트에서 잘못된 질의를 했음을 의미. 이어 나오는 문자열을 통해 오류의 원인을 파악 가능. 예) invalid numeric delta argument, cannot increment or decrement non-numeric value
 | "SERVER ERROR"       | 서버 측의 오류로 연산하지 못했음을 의미. 이어 나오는 문자열을 통해 오류의 원인을 파악 가능. 예) out of memory
+
+## gat/gats (get and touch)
+
+gat, gats 명령은 item을 가져옴과 동시에 exptime을 재설정합니다.
+
+```
+gat <exptime> <key>*\r\n
+gats <exptime> <key>*\r\n
+```
+
+- \<key\>* - 대상 item의 key string 복수개의 key를 공백을 두고 지정할 수 있습니다.
+- \<exptime\> - 재설정할 expiretime 값
+
+gat 명령이 정상 수행되었을 경우, Response string 은 아래와 같이 구성된다.
+
+- key hit된 아이템 정보를 모두 출력
+- key miss된 아이템은 별도 response 없이 생략
+- 응답의 끝에 "END\r\n" 출력
+
+gats 명령의 경우 cas value 도 같이 출력됩니다.
+
+실패시 string은 아래와 같습니다.
+
+| Response String      | 설명                     |
+|----------------------|------------------------ |
+| "CLIENT_ERROR"       | 클라이언트에서 잘못된 질의를 했음을 의미. 이어 나오는 문자열을 통해 오류의 원인을 파악 가능. 예) bad command line format
+| "SERVER ERROR"       | 서버 측의 오류로 조회하지 못했음을 의미. 이어 나오는 문자열을 통해 오류의 원인을 파악 가능. 예) out of memory writing get response

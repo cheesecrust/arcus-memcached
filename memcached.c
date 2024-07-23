@@ -8375,12 +8375,14 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
 
             if (should_touch) {
                 ENGINE_ITEM_ATTR attr_id = ATTR_EXPIRETIME;
+                ENGINE_ERROR_CODE gat_ret = ENGINE_SUCCESS;
                 item_attr attr_data;
 
                 attr_data.exptime = realtime(exptime);
-                ret = mc_engine.v1->setattr(mc_engine.v0, c, key_token->value, key_token->length,
-                                            &attr_id, 1, &attr_data, 0);
-                CONN_CHECK_AND_SET_EWOULDBLOCK(ret, c);
+                gat_ret = mc_engine.v1->setattr(mc_engine.v0, c, key_token->value, key_token->length,
+                                                &attr_id, 1, &attr_data, 0);
+
+                CONN_CHECK_AND_SET_EWOULDBLOCK(gat_ret, c);
                 if (settings.detail_enabled) {
                     stats_prefix_record_setattr(key_token->value, key_token->length);
                 }

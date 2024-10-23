@@ -94,7 +94,7 @@ static bool is_command_duplicated(char *key, int keylen, enum lq_detect_command 
     case LQCMD_BOP_COUNT:
     case LQCMD_BOP_DELETE:
         for (int ii = 0; ii < count; ii++) {
-            if (strcmp(lqdetect.arg[cmd][ii].query, arg->query) == 0) {
+            if (buf->keylen[ii] > 0 && strcmp(lqdetect.arg[cmd][ii].query, arg->query) == 0) {
                 return true;
             }
         }
@@ -103,7 +103,7 @@ static bool is_command_duplicated(char *key, int keylen, enum lq_detect_command 
     case LQCMD_MOP_GET:
     case LQCMD_SOP_GET:
         for (int ii = 0; ii < count; ii++) {
-            if (strcmp(lqdetect.arg[cmd][ii].query, arg->query) == 0) {
+            if (buf->keylen[ii] > 0 && strcmp(lqdetect.arg[cmd][ii].query, arg->query) == 0) {
                 if (arg->count > 0) return true;
                 if (buf->keylen[ii] == keylen &&
                     memcmp(buf->data + buf->keypos[ii], key, keylen) == 0) {
@@ -122,10 +122,8 @@ static void do_lqdetect_write(char *client_ip, char *key,
     struct   tm *ptm;
     struct   timeval val;
     struct   lq_detect_buffer *buffer = &lqdetect.buffer[cmd];
-    uint32_t offset = buffer->offset;
     uint32_t nsaved = buffer->nsaved;
-    char     *bufptr = buffer->data + buffer->offset;
-    uint32_t nwrite, length, keylen = strlen(key);
+    uint32_t length, keylen = strlen(key);
     char keybuf[251];
     char *keyptr = key;
 
@@ -140,21 +138,23 @@ static void do_lqdetect_write(char *client_ip, char *key,
 
     gettimeofday(&val, NULL);
     ptm = localtime(&val.tv_sec);
-    length = ((nsaved+1) * LQ_INPUT_SIZE) - offset - 1;
+    length = ((nsaved+1) * LQ_INPUT_SIZE);
 
-    snprintf(bufptr, length, "%02d:%02d:%02d.%06ld %s <%u> %s ",
-        ptm->tm_hour, ptm->tm_min, ptm->tm_sec, (long)val.tv_usec, client_ip,
-        arg->overhead, command_str[cmd]);
-
-    nwrite = strlen(bufptr);
-    buffer->keypos[nsaved] = offset + nwrite;
+    buffer->offset += snprintf(buffer->data + buffer->offset, length - buffer->offset,
+                               "%02d:%02d:%02d.%06ld %s <%u> %s ",
+                               ptm->tm_hour, ptm->tm_min, ptm->tm_sec, (long)val.tv_usec,
+                               client_ip, arg->overhead, command_str[cmd]);
+    buffer->keypos[nsaved] = buffer->offset;
     buffer->keylen[nsaved] = keylen;
-    length -= nwrite;
-    bufptr += nwrite;
 
-    snprintf(bufptr, length, "%s %s\n", keyptr, arg->query);
-    nwrite += strlen(bufptr);
-    buffer->offset += nwrite;
+    buffer->offset += snprintf(buffer->data + buffer->offset, (length - buffer->offset) > 0 ? (length - buffer->offset) : 0,
+                               "%s %s\n", keyptr, arg->query);
+    if (buffer->offset >= length) {
+        buffer->keypos[nsaved] = -1;
+        buffer->keylen[nsaved] = -1;
+        buffer->offset = length - 1;
+        buffer->data[buffer->offset - 1] = '\n';
+    }
     lqdetect.arg[cmd][nsaved] = *arg;
     buffer->nsaved += 1;
 }

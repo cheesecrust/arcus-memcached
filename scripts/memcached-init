@@ -25,7 +25,6 @@ DAEMON=/usr/bin/memcached
 DAEMONBOOTSTRAP=/usr/share/memcached/scripts/start-memcached
 NAME=memcached
 DESC=memcached
-PIDFILE=/var/run/$NAME.pid
 
 test -x $DAEMON || exit 0
 test -x $DAEMONBOOTSTRAP || exit 0
@@ -35,14 +34,13 @@ set -e
 case "$1" in
     start)
         echo -n "Starting $DESC: "
-        start-stop-daemon --start --quiet --exec $DAEMONBOOTSTRAP
+        nohup $DAEMONBOOTSTRAP > /dev/null 2>&1 &
         echo "$NAME."
         ;;
     stop)
         echo -n "Stopping $DESC: "
-        start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
+        pgrep -f $DAEMON | xargs kill -9
         echo "$NAME."
-        rm -f $PIDFILE
         ;;
 
     restart|force-reload)
@@ -52,10 +50,9 @@ case "$1" in
     #   just the same as "restart".
     #
         echo -n "Restarting $DESC: "
-        start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
-        rm -f $PIDFILE
+        pgrep -f $DAEMON | xargs kill -9
         sleep 1
-        start-stop-daemon --start --quiet --exec $DAEMONBOOTSTRAP
+        nohup $DAEMONBOOTSTRAP > /dev/null 2>&1 &
         echo "$NAME."
         ;;
     *)

@@ -9,12 +9,12 @@
 
 use strict;
 
-my $params; my $etchandle; my $etcfile = "/etc/memcached.conf";
+my $params; my $etchandle; my $etcfile = "/Users/jam2in/Repository/arcus-memcached/scripts/memcached.conf";
 
 # This script assumes that memcached is located at /usr/bin/memcached, and
 # that the pidfile is writable at /var/run/memcached.pid
 
-my $memcached = "/usr/bin/memcached";
+my $memcached = "/Users/jam2in/Repository/arcus-memcached/bin/memcached";
 
 # If we don't get a valid logfile parameter in the /etc/memcached.conf file,
 # we'll just throw away all of our in-daemon output. We need to re-tie it so

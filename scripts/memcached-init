@@ -21,8 +21,8 @@
 
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/bin/memcached
-DAEMONBOOTSTRAP=/usr/share/memcached/scripts/start-memcached
+DAEMON=/Users/jam2in/Repository/arcus-memcached/bin/memcached
+DAEMONBOOTSTRAP=/Users/jam2in/Repository/arcus-memcached/scripts/start-memcached
 NAME=memcached
 DESC=memcached
 

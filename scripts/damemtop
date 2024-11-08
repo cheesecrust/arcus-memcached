@@ -538,7 +538,7 @@ sub load_config {
     if (-e $homedir) {
         $config = $homedir;
     } else {
-        $config = '/etc/damemtop.yaml';
+        $config = '/Users/jam2in/Repository/arcus-memcached/scripts/damemtop.yaml';
     }
     return LoadFile($config);
 }
